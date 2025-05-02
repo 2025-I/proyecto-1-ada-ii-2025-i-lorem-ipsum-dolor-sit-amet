@@ -1,0 +1,1 @@
+# Interfaz para selección de archivos usando Tkinter

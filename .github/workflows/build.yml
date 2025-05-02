@@ -1,0 +1,49 @@
+name: Build Project
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Verify project structure
+      run: |
+        echo "Verificando estructura del proyecto..."
+        [ -d "src" ] || exit 1
+        [ -d "docs" ] || exit 1
+        [ -f "README.md" ] || exit 1
+        [ -f "setup.py" ] || exit 1
+        echo "Estructura del proyecto correcta"
+    
+    - name: Create build artifacts
+      run: |
+        python setup.py sdist bdist_wheel
+        mkdir -p artifacts
+        cp -r dist/* artifacts/
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-artifacts
+        path: artifacts/
