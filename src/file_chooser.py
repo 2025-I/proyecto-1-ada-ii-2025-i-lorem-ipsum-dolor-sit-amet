@@ -1,3 +1,4 @@
+# Interfaz para selección de archivos usando Tkinter
 import tkinter as tk
 from tkinter import filedialog
 
