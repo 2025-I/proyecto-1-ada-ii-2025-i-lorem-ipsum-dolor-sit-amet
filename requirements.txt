@@ -1,1 +1,2 @@
 # Dependencias del proyecto
+pytest==8.3.5 
