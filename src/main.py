@@ -1,7 +1,7 @@
 # Punto de entrada principal del programa
 import sys
 from file_chooser import seleccionar_archivo
-# from problema1.fuerza_bruta import resolver_fuerza_bruta
+from problema1.fuerza_bruta import resolver_fuerza_bruta
 from problema1.programacion_dinamica import resolver_programacion_dinamica
 from problema1.voraz import palindroma_voraz
 
