@@ -3,7 +3,7 @@ import sys
 from file_chooser import seleccionar_archivo
 # from problema1.fuerza_bruta import resolver_fuerza_bruta
 from problema1.programacion_dinamica import resolver_programacion_dinamica
-# from problema1.voraz import resolver_voraz
+from problema1.voraz import palindroma_voraz
 
 def main():
     # Elegir el archivo de entrada
@@ -37,7 +37,7 @@ def main():
             print(resolver_programacion_dinamica(cadena))
     elif criterio == '3':
         for cadena in cadenas:
-            print(resolver_voraz(cadena))
+            print(palindroma_voraz(cadena))
     else:
         print("Opción no válida. Saliendo...")
         sys.exit(1)
