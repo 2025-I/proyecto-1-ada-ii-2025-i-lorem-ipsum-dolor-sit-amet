@@ -7,6 +7,10 @@ import sys
 import re
 import string
 import random
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+from pathlib import Path
 
 # Configuración de paths
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -179,3 +183,114 @@ def test_propiedades_palindromo():
 def test_normalizacion(entrada, esperado):
     """Verifica que la normalización funcione correctamente"""
     assert normalizar_test(entrada) == esperado
+# ====================
+# Generación de gráficas de complejidad
+# ====================
+
+def generar_grafica_complejidad():
+    """Genera gráficas de complejidad para los algoritmos y las guarda en docs/images"""
+    # Crear directorio para imágenes si no existe
+    docs_dir = Path(__file__).parent.parent / "docs"
+    img_dir = docs_dir / "images"
+    os.makedirs(img_dir, exist_ok=True)
+    
+    # Tamaños de entrada para cada algoritmo
+    sizes_fb = [2, 4, 6, 8, 10, 12]
+    sizes_pd = [10, 50, 100, 500, 1000, 5000]
+    sizes_voraz = [10, 50, 100, 1000, 10000, 50000]
+    
+    # Recopilar tiempos de ejecución
+    times_fb = []
+    for n in sizes_fb:
+        cadena = generar_cadena_aleatoria(n)
+        tiempo = medir_tiempo(resolver_fuerza_bruta, cadena)
+        times_fb.append(tiempo)
+        print(f"Fuerza bruta con {n} elementos: {tiempo:.4f} segundos")
+    
+    times_pd = []
+    for n in sizes_pd:
+        cadena = generar_cadena_aleatoria(n)
+        tiempo = medir_tiempo(resolver_programacion_dinamica, cadena)
+        times_pd.append(tiempo)
+        print(f"Programación dinámica con {n} elementos: {tiempo:.4f} segundos")
+    
+    times_voraz = []
+    for n in sizes_voraz:
+        cadena = generar_cadena_aleatoria(n)
+        tiempo = medir_tiempo(resolver_voraz, cadena)
+        times_voraz.append(tiempo)
+        print(f"Algoritmo voraz con {n} elementos: {tiempo:.4f} segundos")
+    
+    # Crear gráfica individual para cada algoritmo
+    plt.figure(figsize=(10, 6))
+    plt.plot(sizes_fb, times_fb, 'o-', label='Fuerza Bruta')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlabel('Tamaño de entrada (n)')
+    plt.ylabel('Tiempo (segundos)')
+    plt.title('Complejidad temporal: Fuerza Bruta')
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(img_dir / 'fuerza_bruta_complexity.png')
+    
+    plt.figure(figsize=(10, 6))
+    plt.plot(sizes_pd, times_pd, 'o-', label='Programación Dinámica')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlabel('Tamaño de entrada (n)')
+    plt.ylabel('Tiempo (segundos)')
+    plt.title('Complejidad temporal: Programación Dinámica')
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(img_dir / 'programacion_dinamica_complexity.png')
+    
+    plt.figure(figsize=(10, 6))
+    plt.plot(sizes_voraz, times_voraz, 'o-', label='Algoritmo Voraz')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlabel('Tamaño de entrada (n)')
+    plt.ylabel('Tiempo (segundos)')
+    plt.title('Complejidad temporal: Algoritmo Voraz')
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(img_dir / 'voraz_complexity.png')
+    
+    # Gráfica comparativa (ajustando escalas)
+    plt.figure(figsize=(12, 7))
+    
+    # Para la gráfica comparativa, seleccionamos solo algunos puntos para equilibrar la visualización
+    plt.plot(sizes_fb, times_fb, 'o-', label='Fuerza Bruta', color='red')
+    
+    # Usar un rango común de tamaños para comparar PD y Voraz
+    common_sizes = [10, 50, 100]
+    times_pd_common = []
+    times_voraz_common = []
+    
+    for n in common_sizes:
+        cadena = generar_cadena_aleatoria(n)
+        tiempo_pd = medir_tiempo(resolver_programacion_dinamica, cadena)
+        tiempo_voraz = medir_tiempo(resolver_voraz, cadena)
+        times_pd_common.append(tiempo_pd)
+        times_voraz_common.append(tiempo_voraz)
+    
+    plt.plot(common_sizes, times_pd_common, 's-', label='Programación Dinámica', color='blue')
+    plt.plot(common_sizes, times_voraz_common, '^-', label='Algoritmo Voraz', color='green')
+    
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlabel('Tamaño de entrada (n)')
+    plt.ylabel('Tiempo (segundos)')
+    plt.title('Comparativa de complejidad temporal entre algoritmos')
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(img_dir / 'comparativa_algoritmos.png')
+    
+    print(f"\nLas gráficas de complejidad se han guardado en {img_dir}")
+
+if __name__ == "__main__":
+    # Si se ejecuta el script directamente, generar las gráficas
+    generar_grafica_complejidad()
