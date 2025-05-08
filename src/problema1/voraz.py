@@ -1,26 +1,31 @@
 import re
 
 def normalize_string(s):
-    return re.sub(r'[^a-z0-9]', '', s.lower())  #Se usa re para eliminar caracteres no alfanuméricos y convertir a minúsculas
+    s = s.lower()
+    replacements = {'á':'a', 'é':'e', 'í':'i', 'ó':'o', 'ú':'u', 'ü':'u', 'ñ':'n'}
+    for old, new in replacements.items():
+        s = s.replace(old, new)
+    return re.sub(r'[^a-z0-9]', '', s)
 
 def resolver_voraz(s):
     s = normalize_string(s)
-    n = len(s)
-    left = 0
-    right = n - 1
-    izquierda = []
-    derecha = []
-
-    while left <= right:
-        if s[left] == s[right]:
-            izquierda.append(s[left])
-            if left != right:
-                derecha.append(s[right])
-            left += 1
-            right -= 1
-        elif s[left + 1:right + 1].count(s[right]) > s[left:right].count(s[left]):
-            left += 1
-        else:
-            right -= 1
-
-    return ''.join(izquierda + derecha[::-1])
+    max_palindrome = ""
+    
+    for i in range(len(s)):
+        # Caso impar (centro único)
+        l, r = i, i
+        while l >= 0 and r < len(s) and s[l] == s[r]:
+            if (r - l + 1) > len(max_palindrome):
+                max_palindrome = s[l:r+1]
+            l -= 1
+            r += 1
+        
+        # Caso par (centro doble)
+        l, r = i, i+1
+        while l >= 0 and r < len(s) and s[l] == s[r]:
+            if (r - l + 1) > len(max_palindrome):
+                max_palindrome = s[l:r+1]
+            l -= 1
+            r += 1
+    
+    return max_palindrome

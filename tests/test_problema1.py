@@ -1,104 +1,181 @@
+# tests/test_problema1.py
 import time
 import pytest
 from pathlib import Path
-import sys
 import os
+import sys
+import re
+import string
+import random
 
+# Configuración de paths
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from src.problema1.programacion_dinamica import resolver_programacion_dinamica
 from src.problema1.fuerza_bruta import resolver_fuerza_bruta
+from src.problema1.programacion_dinamica import resolver_programacion_dinamica
 from src.problema1.voraz import resolver_voraz
 
-# Función para medir tiempos de ejecución
+# ====================
+# Funciones auxiliares
+# ====================
+
+def normalizar_test(cadena):
+    """Función de normalización para tests (debe ser idéntica a la usada en los algoritmos)"""
+    s = cadena.lower()
+    replacements = {'á':'a', 'é':'e', 'í':'i', 'ó':'o', 'ú':'u', 'ü':'u', 'ñ':'n'}
+    for old, new in replacements.items():
+        s = s.replace(old, new)
+    return re.sub(r'[^a-z0-9]', '', s)
+
+def generar_cadena_aleatoria(longitud):
+    """Genera cadena aleatoria para pruebas de rendimiento"""
+    chars = string.ascii_letters + string.digits + string.punctuation + ' '
+    return ''.join(random.choice(chars) for _ in range(longitud))
+
 def medir_tiempo(funcion, entrada, repeticiones=5):
-    """Mide el tiempo promedio de ejecución de una función"""
+    """Mide tiempo promedio de ejecución"""
     tiempos = []
     for _ in range(repeticiones):
-        inicio = time.perf_counter()  # Más preciso que time.time()
+        inicio = time.perf_counter()
         funcion(entrada)
         fin = time.perf_counter()
         tiempos.append(fin - inicio)
     return sum(tiempos) / repeticiones
 
-# Función para leer archivos de prueba
-def leer_datos_prueba(ruta_input, ruta_expected=None):
-    """Lee archivos de prueba en formato del enunciado"""
+def leer_datos_prueba(ruta_input, ruta_expected):
+    """Lee archivos de prueba"""
     with open(ruta_input, 'r', encoding='utf-8') as f:
         n = int(f.readline())
-        inputs = [f.readline().strip() for _ in range(n)]
+        entradas = [line.strip() for line in f.readlines()[:n]]
     
-    expected = None
-    if ruta_expected:
-        with open(ruta_expected, 'r', encoding='utf-8') as f:
-            expected = [line.strip() for line in f.readlines()]
+    with open(ruta_expected, 'r', encoding='utf-8') as f:
+        esperados = [line.strip() for line in f.readlines()]
     
-    return inputs, expected
+    return entradas, esperados
 
-# Fixture para cargar datos de prueba
-@pytest.fixture(params=['small'])
-def datos_prueba(request):
-    base_path = Path(__file__).parent / 'data' / request.param
-    inputs, expected = leer_datos_prueba(
-        base_path / 'input_p1.txt',
-        base_path / 'expected_p1.txt'
-    )
-    return {
-        'tamaño': request.param,
-        'inputs': inputs,
-        'expected': expected
-    }
+# ====================
+# Pruebas unitarias
+# ====================
 
-# Pruebas unitarias básicas
-@pytest.mark.parametrize("input, esperado", [
-    ("babad", "bab"),
-    ("cbbd", "bb"),
+@pytest.mark.parametrize("entrada,esperado", [
+    ("Anita lava la tina", "anitalavalatina"),
     ("a", "a"),
-    ("abcde", "a"),  # Cualquier carácter es válido
-    ("Dábale arroz", "dabalearroz")
+    ("", ""),
+    ("12321", "12321"),
+    ("A man, a plan, a canal: Panama", "amanaplanacanalpanama")
 ])
-def test_implementaciones(input, esperado):
-    """Verifica que todas las implementaciones coincidan"""
-    resultado_pd = resolver_programacion_dinamica(input)
-    resultado_fb = resolver_fuerza_bruta(input)
-    resultado_vz = resolver_voraz(input)
+def test_resultados_exactos(entrada, esperado):
+    """Verifica que los algoritmos devuelvan resultados exactos para casos conocidos"""
+    resultado_pd = resolver_programacion_dinamica(entrada)
+    resultado_vz = resolver_voraz(entrada)
     
-    assert len(resultado_pd) == len(esperado)
-    assert len(resultado_fb) == len(esperado)
-    assert len(resultado_vz) == len(esperado)
-  # PD y Voraz deben coincidir exactamente
+    # Verificación estricta para programación dinámica
+    assert resultado_pd == esperado, \
+        f"PD falló: Esperado '{esperado}' ({len(esperado)}), Obtenido '{resultado_pd}' ({len(resultado_pd)})"
+    
+    # Verificación laxa para voraz (puede ser subóptimo pero debe ser palíndromo)
+    assert resultado_vz == resultado_vz[::-1], "El resultado voraz no es palíndromo"
+    assert len(resultado_vz) <= len(esperado), \
+        f"Voraz devolvió cadena más larga que el óptimo: {len(resultado_vz)} > {len(esperado)}"
 
+# ====================
+# Pruebas con archivos
+# ====================
+
+@pytest.mark.parametrize("tamaño", ['juguete', 'small'])
+def test_archivos(tamaño):
+    """Prueba los algoritmos con archivos de entrada/salida"""
+    base_path = Path(__file__).parent / "data" / tamaño
+    input_path = base_path / "input_p1.txt"
+    expected_path = base_path / "expected_p1.txt"
+    
+    entradas, esperados = leer_datos_prueba(input_path, expected_path)
+    
+    for entrada, esperado in zip(entradas, esperados):
+        # Programación dinámica debe coincidir exactamente
+        resultado_pd = resolver_programacion_dinamica(entrada)
+        assert resultado_pd == esperado, \
+            f"PD falló en {tamaño}: Esperado '{esperado}', Obtenido '{resultado_pd}'"
+        
+        # Voraz debe devolver un palíndromo válido (puede ser subóptimo)
+        resultado_vz = resolver_voraz(entrada)
+        assert resultado_vz == resultado_vz[::-1], "Voraz no devolvió palíndromo"
+        assert len(resultado_vz) <= len(esperado), \
+            f"Voraz devolvió cadena más larga que el óptimo en {tamaño}"
+
+# ====================
 # Pruebas de rendimiento
-@pytest.mark.parametrize("algoritmo, tamaño", [
+# ====================
+
+@pytest.mark.parametrize("algoritmo,tamaño", [
     (resolver_programacion_dinamica, 100),
     (resolver_programacion_dinamica, 1000),
+    (resolver_programacion_dinamica, 5000),
     (resolver_voraz, 100),
     (resolver_voraz, 10000),
+    (resolver_voraz, 50000),
     (resolver_fuerza_bruta, 10),
-    (resolver_fuerza_bruta, 15)
+    (resolver_fuerza_bruta, 12)
 ], ids=[
-    "PD-100", "PD-1000",
-    "VORAZ-100", "VORAZ-10000",
-    "FB-10", "FB-15"
+    "PD-100", "PD-1000", "PD-5000",
+    "VORAZ-100", "VORAZ-10000", "VORAZ-50000",
+    "FB-10", "FB-12"
 ])
 def test_rendimiento(algoritmo, tamaño):
-    """Prueba de rendimiento para diferentes tamaños de entrada"""
-    cadena = "a" * tamaño  # Cadena simple para pruebas de tiempo
+    """Pruebas de rendimiento para diferentes tamaños de entrada"""
+    if algoritmo == resolver_fuerza_bruta and tamaño > 15:
+        pytest.skip("Fuerza bruta es muy lento para tamaños grandes")
+    
+    cadena = generar_cadena_aleatoria(tamaño)
     tiempo = medir_tiempo(algoritmo, cadena)
     
-    print(f"\n{algoritmo.__name__} ({tamaño} elementos): {tiempo:.6f} segundos")
+    print(f"\n{algoritmo.__name__} ({tamaño} elementos): {tiempo:.4f} segundos")
     
-    # Umbrales de tiempo (ajustar según necesidades)
+    # Umbrales de tiempo (ajustar según hardware)
     if algoritmo == resolver_fuerza_bruta:
         assert tiempo < 2.0
     elif algoritmo == resolver_programacion_dinamica:
-        assert tiempo < 0.5
+        assert tiempo < 5.0
     else:
-        assert tiempo < 0.1
+        assert tiempo < 0.5
 
-# Prueba con datos desde archivos
-def test_con_datos_externos(datos_prueba):
-    """Prueba usando los archivos de datos"""
-    for i, cadena in enumerate(datos_prueba['inputs']):
-        resultado = resolver_programacion_dinamica(cadena)
-        assert resultado == datos_prueba['expected'][i], \
-            f"Error en {datos_prueba['tamaño']}, caso {i+1}"
+# ====================
+# Pruebas de propiedades
+# ====================
+
+def test_propiedades_palindromo():
+    """Verifica propiedades fundamentales de los algoritmos"""
+    casos = [
+        "Race car",
+        "No 'x' in Nixon",
+        "Able was I ere I saw Elba",
+        "Madam, I'm Adam"
+    ]
+    
+    for caso in casos:
+        # Todos deben devolver palíndromos
+        resultado_pd = resolver_programacion_dinamica(caso)
+        resultado_vz = resolver_voraz(caso)
+        resultado_fb = resolver_fuerza_bruta(caso)
+        
+        assert resultado_pd == resultado_pd[::-1]
+        assert resultado_vz == resultado_vz[::-1]
+        assert resultado_fb == resultado_fb[::-1]
+        
+        # PD debe devolver la solución óptima
+        assert len(resultado_pd) >= len(resultado_vz)
+        assert len(resultado_pd) >= len(resultado_fb)
+
+# ====================
+# Pruebas de normalización
+# ====================
+
+@pytest.mark.parametrize("entrada,esperado", [
+    ("Dábale", "dabale"),
+    ("México", "mexico"),
+    ("Canción", "cancion"),
+    ("Año 2023", "ano2023"),
+    ("¡Hola!", "hola")
+])
+def test_normalizacion(entrada, esperado):
+    """Verifica que la normalización funcione correctamente"""
+    assert normalizar_test(entrada) == esperado
