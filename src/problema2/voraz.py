@@ -44,6 +44,8 @@ def fiesta_voraz(relaciones, calificaciones):
     
     # Convertir a formato de salida
     resultado = [1 if i in invitados else 0 for i in range(n)]
+    ##vector   = [1 if i in invitados else 0 for i in range(n)]
+    ##return vector, total
     resultado.append(total)
     return resultado
 

@@ -1,129 +1,96 @@
-#Impletar algoritmo de programación dinámica para resolver el problema de planificación de fiesta
 # problema2/programacion_dinamica.py
-from collections import defaultdict
-
 def resolver_programacion_dinamica(empleados, relaciones, calificaciones):
-    """
-    Función principal de DP para el problema 2
-    Parámetros actualizados:
-    - empleados: int (número de empleados)
-    - relaciones: matriz de supervisión (lista de listas)
-    - calificaciones: lista de calificaciones (lista de enteros)
-    """
     m = empleados
-    
-    # En lugar de usar la estructura de árbol con padres e hijos,
-    # simplemente rastreamos las relaciones directas de supervisión
     supervisiones = [[] for _ in range(m)]
-    
-    # Construir estructura de supervisión
+
+    # Construir estructura de supervisión (i supervisa a j)
     for i in range(m):
         for j in range(m):
             if relaciones[i][j] == 1:
-                supervisiones[i].append(j)  # i supervisa a j
-    
-    # Utilizamos programación dinámica para resolver el problema
-    # dp[i][0] = máxima calificación posible para el subárbol con raíz en i, sin incluir i
-    # dp[i][1] = máxima calificación posible para el subárbol con raíz en i, incluyendo i
+                supervisiones[i].append(j)
+
+    # Calcular padres para detectar raíces (los que no son supervisados)
+    padres = [0] * m
+    for i in range(m):
+        for j in supervisiones[i]:
+            padres[j] += 1
+    raices = [i for i, p in enumerate(padres) if p == 0]
+
     dp = [[-1, -1] for _ in range(m)]
     visitado = [False] * m
-    
+
     def calcular_dp(nodo):
         if dp[nodo][0] != -1 and dp[nodo][1] != -1:
-            return  # Ya calculado
-            
-        # Inicializar valores
-        dp[nodo][0] = 0  # No incluir este nodo
-        dp[nodo][1] = calificaciones[nodo]  # Incluir este nodo
-        
-        # Marcar como visitado para evitar ciclos
+            return
+        dp[nodo][0] = 0
+        dp[nodo][1] = calificaciones[nodo]
         visitado[nodo] = True
-        
-        for subordinado in supervisiones[nodo]:
-            if not visitado[subordinado]:
-                calcular_dp(subordinado)
-            
-            # Si incluimos el nodo actual, no podemos incluir a sus subordinados directos
-            dp[nodo][1] += dp[subordinado][0]
-            
-            # Si no incluimos el nodo actual, podemos elegir lo mejor para cada subordinado
-            dp[nodo][0] += max(dp[subordinado][0], dp[subordinado][1])
-        
-        # Desmarcar para permitir otros caminos
+        for hijo in supervisiones[nodo]:
+            if not visitado[hijo]:
+                calcular_dp(hijo)
+            dp[nodo][0] += max(dp[hijo][0], dp[hijo][1])
+            dp[nodo][1] += dp[hijo][0]
         visitado[nodo] = False
-    
-    # Calcular para cada nodo no visitado
-    for nodo in range(m):
-        if not visitado[nodo]:
-            calcular_dp(nodo)
-    
-    # Determinar qué empleados invitar
-    seleccionado = [False] * m
-    
+
+    for raiz in raices:
+        calcular_dp(raiz)
+
+    seleccionado = [0] * m
+    visitado = [False] * m
+
     def seleccionar(nodo, puede_incluir):
         visitado[nodo] = True
-        
         if puede_incluir and dp[nodo][1] > dp[nodo][0]:
-            seleccionado[nodo] = True
-            # Si seleccionamos este nodo, no podemos seleccionar a sus subordinados
-            for subordinado in supervisiones[nodo]:
-                if not visitado[subordinado]:
-                    seleccionar(subordinado, False)
+            seleccionado[nodo] = 1
+            for hijo in supervisiones[nodo]:
+                if not visitado[hijo]:
+                    visitado[hijo] = True
+                    seleccionar(hijo, False)
         else:
-            seleccionado[nodo] = False
-            # Si no seleccionamos este nodo, podemos seleccionar a sus subordinados
-            for subordinado in supervisiones[nodo]:
-                if not visitado[subordinado]:
-                    seleccionar(subordinado, True)
-    
-    # Reiniciar visitado para la selección
-    visitado = [False] * m
-    
-    for nodo in range(m):
-        if not visitado[nodo]:
-            seleccionar(nodo, True)
-    
-    suma_total = sum(calificaciones[i] for i in range(m) if seleccionado[i])
+            for hijo in supervisiones[nodo]:
+                if not visitado[hijo]:
+                    visitado[hijo] = True
+                    seleccionar(hijo, True)
+
+    for raiz in raices:
+        seleccionar(raiz, True)
+
+    suma_total = sum(calificaciones[i] for i in range(m) if seleccionado[i] == 1)
     return seleccionado, suma_total
 
+
 def procesar_problema2(lineas):
-    """
-    Función para procesar múltiples casos de entrada
-    """
     idx = 0
     n_problemas = int(lineas[idx])
     idx += 1
     resultados = []
-    
+
     for _ in range(n_problemas):
         m = int(lineas[idx])
         idx += 1
-        
-        # Leer matriz de relaciones
+
         relaciones = []
         for _ in range(m):
             relaciones.append(list(map(int, lineas[idx].split())))
             idx += 1
-        
+
         calificaciones = list(map(int, lineas[idx].split()))
         idx += 1
 
-        # Llamar a la función con los 3 parámetros requeridos
         invitados, suma = resolver_programacion_dinamica(
             empleados=m,
             relaciones=relaciones,
             calificaciones=calificaciones
         )
-        
-        # Formatear salida según especificaciones
+
         salida = ' '.join(['1' if x else '0' for x in invitados]) + ' ' + str(suma)
         resultados.append(salida)
-    
+
     return resultados
+
 
 if __name__ == "__main__":
     import sys
     lineas = sys.stdin.read().splitlines()
     for resultado in procesar_problema2(lineas):
         print(resultado)
-        # print(' '.join(map(str, invitados)) + ' ' + str(puntaje)) 
