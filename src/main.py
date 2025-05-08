@@ -5,7 +5,7 @@ from file_chooser import seleccionar_archivo
 # Importaciones problema 1
 from problema1.fuerza_bruta import resolver_fuerza_bruta
 from problema1.programacion_dinamica import resolver_programacion_dinamica as resolver_p1_dinamica
-from problema1.voraz import subsecuencia_palindromica_voraz as palindroma_voraz
+from problema1.voraz import resolver_voraz as palindroma_voraz
 
 # Importaciones problema 2
 from problema2.programacion_dinamica import resolver_programacion_dinamica as resolver_p2_dinamica
