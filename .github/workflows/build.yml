@@ -38,7 +38,7 @@ jobs:
     
     - name: Create build artifacts
       run: |
-        python setup.py sdist bdist_wheel
+        python setup_project.py sdist bdist_wheel
         mkdir -p artifacts
         cp -r dist/* artifacts/
     
