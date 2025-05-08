@@ -1,114 +1,129 @@
+#Impletar algoritmo de programación dinámica para resolver el problema de planificación de fiesta
+# problema2/programacion_dinamica.py
 from collections import defaultdict
 
 def resolver_programacion_dinamica(empleados, relaciones, calificaciones):
-
-    # Resuelve el problema de planificación de fiesta usando programación dinámica.
-
-    # Construir el árbol a partir de la matriz de adyacencia
-    grafo = defaultdict(list)
-    es_hijo = [False] * empleados
+    """
+    Función principal de DP para el problema 2
+    Parámetros actualizados:
+    - empleados: int (número de empleados)
+    - relaciones: matriz de supervisión (lista de listas)
+    - calificaciones: lista de calificaciones (lista de enteros)
+    """
+    m = empleados
     
-    # Crear el grafo y detectar la raíz
-    for i in range(empleados):
-        for j in range(empleados):
-            if relaciones[i][j] == 1:  # i es padre de j
-                grafo[i].append(j)
-                es_hijo[j] = True
+    # En lugar de usar la estructura de árbol con padres e hijos,
+    # simplemente rastreamos las relaciones directas de supervisión
+    supervisiones = [[] for _ in range(m)]
     
-    # Encontrar la raíz (nodo que no es hijo de ningún otro nodo)
-    raiz = None
-    for i in range(empleados):
-        if not es_hijo[i]:
-            if raiz is not None:
-                print("Error: Se encontró más de una raíz en el árbol.")
-                return [0] * empleados, 0
-            raiz = i
+    # Construir estructura de supervisión
+    for i in range(m):
+        for j in range(m):
+            if relaciones[i][j] == 1:
+                supervisiones[i].append(j)  # i supervisa a j
     
-    # Verificar que se haya encontrado exactamente una raíz
-    if raiz is None:
-        print("Error: No se encontró una raíz en el árbol.")
-        return [0] * empleados, 0
+    # Utilizamos programación dinámica para resolver el problema
+    # dp[i][0] = máxima calificación posible para el subárbol con raíz en i, sin incluir i
+    # dp[i][1] = máxima calificación posible para el subárbol con raíz en i, incluyendo i
+    dp = [[-1, -1] for _ in range(m)]
+    visitado = [False] * m
     
-    # Verificar si hay ciclos en el grafo
-    visitado = [False] * empleados
-    en_pila = [False] * empleados
-    
-    def tiene_ciclo(nodo):
+    def calcular_dp(nodo):
+        if dp[nodo][0] != -1 and dp[nodo][1] != -1:
+            return  # Ya calculado
+            
+        # Inicializar valores
+        dp[nodo][0] = 0  # No incluir este nodo
+        dp[nodo][1] = calificaciones[nodo]  # Incluir este nodo
+        
+        # Marcar como visitado para evitar ciclos
         visitado[nodo] = True
-        en_pila[nodo] = True
         
-        for vecino in grafo[nodo]:
-            if not visitado[vecino]:
-                if tiene_ciclo(vecino):
-                    return True
-            elif en_pila[vecino]:
-                return True
+        for subordinado in supervisiones[nodo]:
+            if not visitado[subordinado]:
+                calcular_dp(subordinado)
+            
+            # Si incluimos el nodo actual, no podemos incluir a sus subordinados directos
+            dp[nodo][1] += dp[subordinado][0]
+            
+            # Si no incluimos el nodo actual, podemos elegir lo mejor para cada subordinado
+            dp[nodo][0] += max(dp[subordinado][0], dp[subordinado][1])
         
-        en_pila[nodo] = False
-        return False
+        # Desmarcar para permitir otros caminos
+        visitado[nodo] = False
     
-    # Comprobar si hay ciclos comenzando desde la raíz
-    if tiene_ciclo(raiz):
-        print("Error: Se detectó un ciclo en el árbol. El problema no puede resolverse.")
-        return [0] * empleados, 0
+    # Calcular para cada nodo no visitado
+    for nodo in range(m):
+        if not visitado[nodo]:
+            calcular_dp(nodo)
     
-    # Memoización para almacenar los resultados
-    memo_incluir = [-1] * empleados
-    memo_excluir = [-1] * empleados
+    # Determinar qué empleados invitar
+    seleccionado = [False] * m
     
-    # Función para calcular el puntaje usando programación dinámica
-    def dp(nodo, incluir):
-        if incluir:
-            if memo_incluir[nodo] != -1:
-                return memo_incluir[nodo]
-            # Puntaje si incluimos el nodo
-            puntaje = calificaciones[nodo]
-            for hijo in grafo[nodo]:
-                puntaje += dp(hijo, False)  # Solo podemos excluir a los hijos
-            memo_incluir[nodo] = puntaje
-            return puntaje
+    def seleccionar(nodo, puede_incluir):
+        visitado[nodo] = True
+        
+        if puede_incluir and dp[nodo][1] > dp[nodo][0]:
+            seleccionado[nodo] = True
+            # Si seleccionamos este nodo, no podemos seleccionar a sus subordinados
+            for subordinado in supervisiones[nodo]:
+                if not visitado[subordinado]:
+                    seleccionar(subordinado, False)
         else:
-            if memo_excluir[nodo] != -1:
-                return memo_excluir[nodo]
-            # Puntaje si excluimos el nodo
-            puntaje = 0
-            for hijo in grafo[nodo]:
-                puntaje += max(dp(hijo, True), dp(hijo, False))
-            memo_excluir[nodo] = puntaje
-            return puntaje
+            seleccionado[nodo] = False
+            # Si no seleccionamos este nodo, podemos seleccionar a sus subordinados
+            for subordinado in supervisiones[nodo]:
+                if not visitado[subordinado]:
+                    seleccionar(subordinado, True)
     
-    # Calcular el puntaje máximo para la raíz
-    max_puntaje = max(dp(raiz, True), dp(raiz, False))
+    # Reiniciar visitado para la selección
+    visitado = [False] * m
     
-    # Reconstruir la lista de invitados
-    invitados = [0] * empleados
+    for nodo in range(m):
+        if not visitado[nodo]:
+            seleccionar(nodo, True)
     
-    def reconstruir(nodo, incluir):
-        if incluir:
-            invitados[nodo] = 1
-            for hijo in grafo[nodo]:
-                reconstruir(hijo, False)
-        else:
-            for hijo in grafo[nodo]:
-                if dp(hijo, True) > dp(hijo, False):
-                    reconstruir(hijo, True)
-                else:
-                    reconstruir(hijo, False)
-    
-    # Decidir si incluir o no la raíz
-    if dp(raiz, True) > dp(raiz, False):
-        reconstruir(raiz, True)
-    else:
-        reconstruir(raiz, False)
-    
-    # Retornar el vector de invitados y el puntaje total
-    return invitados, max_puntaje
+    suma_total = sum(calificaciones[i] for i in range(m) if seleccionado[i])
+    return seleccionado, suma_total
 
-# Función para imprimir la estructura del grafo (útil para depuración)
-def imprimir_grafo(grafo, empleados):
-    print("Estructura del grafo:")
-    for i in range(empleados):
-        if i in grafo:
-            print(f"Empleado {i} es jefe de: {grafo[i]}")
-        else:
-            print(f"Empleado {i} no tiene subordinados")
+def procesar_problema2(lineas):
+    """
+    Función para procesar múltiples casos de entrada
+    """
+    idx = 0
+    n_problemas = int(lineas[idx])
+    idx += 1
+    resultados = []
+    
+    for _ in range(n_problemas):
+        m = int(lineas[idx])
+        idx += 1
+        
+        # Leer matriz de relaciones
+        relaciones = []
+        for _ in range(m):
+            relaciones.append(list(map(int, lineas[idx].split())))
+            idx += 1
+        
+        calificaciones = list(map(int, lineas[idx].split()))
+        idx += 1
+
+        # Llamar a la función con los 3 parámetros requeridos
+        invitados, suma = resolver_programacion_dinamica(
+            empleados=m,
+            relaciones=relaciones,
+            calificaciones=calificaciones
+        )
+        
+        # Formatear salida según especificaciones
+        salida = ' '.join(['1' if x else '0' for x in invitados]) + ' ' + str(suma)
+        resultados.append(salida)
+    
+    return resultados
+
+if __name__ == "__main__":
+    import sys
+    lineas = sys.stdin.read().splitlines()
+    for resultado in procesar_problema2(lineas):
+        print(resultado)
+        # print(' '.join(map(str, invitados)) + ' ' + str(puntaje)) 
