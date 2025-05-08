@@ -2,9 +2,9 @@ name: Build Project
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "dev" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "dev" ]
   workflow_dispatch:
 
 jobs:
@@ -33,17 +33,17 @@ jobs:
         [ -d "src" ] || exit 1
         [ -d "docs" ] || exit 1
         [ -f "README.md" ] || exit 1
-        [ -f "setup.py" ] || exit 1
+        [ -f "setup_project.py" ] || exit 1
         echo "Estructura del proyecto correcta"
     
     - name: Create build artifacts
       run: |
-        python setup.py sdist bdist_wheel
+        python setup_project.py sdist bdist_wheel
         mkdir -p artifacts
         cp -r dist/* artifacts/
     
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: build-artifacts
         path: artifacts/
