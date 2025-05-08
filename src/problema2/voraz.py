@@ -1,65 +1,62 @@
 import heapq
 
-class Empleado:
-    def __init__(self, id, calificacion):
-        self.id = id
-        self.calificacion = calificacion
-        self.hijos = []
-        self.padre = None
-
-def construir_arbol(matriz, calificaciones):
-
-    n = len(matriz)
-    empleados = [Empleado(i, calificaciones[i]) for i in range(n)]
+def fiesta_voraz(relaciones, calificaciones):
+    """
+    Implementación voraz corregida para el problema 2
     
-    for i in range(n):
-        for j in range(n):
-            if matriz[i][j] == 1:
-                empleados[i].hijos.append(empleados[j])
-                empleados[j].padre = empleados[i]
-    
-    # Manejar múltiples raíces (por si es un bosque)
-    raices = [emp for emp in empleados if emp.padre is None]
-    return raices, empleados
-
-def planificar_fiesta_voraz(raices):
-
+    Args:
+        relaciones: Matriz de adyacencia (n x n) donde 1 indica relación supervisor-subordinado
+        calificaciones: Lista de calificaciones de convivencia
+        
+    Returns:
+        list: Vector de invitación (0/1) + suma total en última posición
+    """
+    n = len(calificaciones)
     invitados = set()
     total = 0
+    
     # Max-heap usando valores negativos
-    heap = [(-emp.calificacion, emp) for emp in raices]
+    heap = [(-calificaciones[i], i) for i in range(n)]
     heapq.heapify(heap)
     
     while heap:
         _, empleado = heapq.heappop(heap)
         
-        # Verificar restricciones
-        if (empleado.padre and empleado.padre.id in invitados) or \
-           any(hijo.id in invitados for hijo in empleado.hijos):
-            continue
+        # Verificar restricciones más estrictas
+        conflicto = False
         
-        # Invitar empleado
-        invitados.add(empleado.id)
-        total += empleado.calificacion
+        # Verificar si algún supervisor está invitado
+        for supervisor in range(n):
+            if relaciones[supervisor][empleado] == 1 and supervisor in invitados:
+                conflicto = True
+                break
+                
+        # Verificar si algún subordinado está invitado
+        if not conflicto:
+            for subordinado in range(n):
+                if relaciones[empleado][subordinado] == 1 and subordinado in invitados:
+                    conflicto = True
+                    break
         
-        # Agregar hijos al heap
-        for hijo in empleado.hijos:
-            heapq.heappush(heap, (-hijo.calificacion, hijo))
+        if not conflicto:
+            invitados.add(empleado)
+            total += calificaciones[empleado]
     
-    return invitados, total
+    # Convertir a formato de salida
+    resultado = [1 if i in invitados else 0 for i in range(n)]
+    resultado.append(total)
+    return resultado
 
 def resolver_problema(matriz, calificaciones):
-
-    raices, empleados = construir_arbol(matriz, calificaciones)
+    """
+    Función principal corregida
     
-    # Caso especial: estructura vacía
-    if not raices:
-        return [0]*len(empleados) + [0]
-    
-    invitados, total = planificar_fiesta_voraz(raices)
-    
-    # Construir resultado en orden original
-    resultado = [1 if i in invitados else 0 for i in range(len(empleados))]
-    resultado.append(total)
-    
-    return resultado
+    Args:
+        matriz: Matriz de adyacencia nxn
+        calificaciones: Lista de calificaciones
+        
+    Returns:
+        list: Vector de invitación (0/1) + suma total en última posición
+    """
+    # Eliminé la construcción del árbol que no se usaba correctamente
+    return fiesta_voraz(matriz, calificaciones)
