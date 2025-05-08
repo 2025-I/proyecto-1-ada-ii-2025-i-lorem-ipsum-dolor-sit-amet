@@ -33,7 +33,7 @@ jobs:
         [ -d "src" ] || exit 1
         [ -d "docs" ] || exit 1
         [ -f "README.md" ] || exit 1
-        [ -f "setup.py" ] || exit 1
+        [ -f "setup_project.py" ] || exit 1
         echo "Estructura del proyecto correcta"
     
     - name: Create build artifacts
