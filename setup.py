@@ -8,7 +8,7 @@ setup(
     install_requires=[
         "pytest>=8.3.5",
         "setuptools>=80.3.1",
-        "wheel>=0.46.1"
+        "wheel>=0.46.1",
     ],
     python_requires=">=3.9",
 )

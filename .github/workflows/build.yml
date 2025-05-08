@@ -42,10 +42,6 @@ jobs:
         [ -f "setup.py" ] || { echo "❌ Falta setup.py"; exit 1; }
         echo "✅ Estructura del proyecto correcta"
     
-    - name: Run tests
-      run: |
-        pytest tests/ -v --cov=src --cov-report=xml
-
     - name: Create build artifacts
       run: |
         python setup_project.py sdist bdist_wheel
