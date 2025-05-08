@@ -52,11 +52,25 @@ def procesar_p1(cadenas, algoritmo):
         print(algoritmo(cadena))
 
 def procesar_p2(casos, algoritmo):
-    """Procesa cada caso con el algoritmo seleccionado para el problema 2."""
+    """
+    Procesa cada caso con el algoritmo seleccionado para el problema 2.
+    Soporta algoritmos que retornan:
+    - Una tupla: (vector, puntaje)
+    - Una lista: [0/1, 0/1, ..., puntaje]
+    """
     for empleados, relaciones, calificaciones in casos:
-        invitados, puntaje = algoritmo(empleados, relaciones, calificaciones)
-        # Formato de salida: vector de invitados seguido del puntaje total
+        resultado = algoritmo(empleados, relaciones, calificaciones) \
+            if algoritmo.__code__.co_argcount == 3 else algoritmo(relaciones, calificaciones)
+
+        if isinstance(resultado, tuple) and len(resultado) == 2:
+            invitados, puntaje = resultado
+        elif isinstance(resultado, list):
+            invitados, puntaje = resultado[:-1], resultado[-1]
+        else:
+            raise ValueError("El algoritmo debe retornar una lista o una tupla (vector, puntaje)")
+
         print(' '.join(map(str, invitados)) + ' ' + str(puntaje))
+    
 
 def main():
     # Elegir el archivo de entrada
