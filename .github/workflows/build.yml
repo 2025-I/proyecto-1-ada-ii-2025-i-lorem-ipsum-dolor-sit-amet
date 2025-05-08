@@ -1,14 +1,14 @@
-name: Build Project
+name: Build and Test Project
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "dev" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "dev" ]
   workflow_dispatch:
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -25,25 +25,34 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        pip install setuptools wheel  # Instalación explícita
         pip install -r requirements.txt
-    
+
     - name: Verify project structure
       run: |
         echo "Verificando estructura del proyecto..."
         [ -d "src" ] || exit 1
         [ -d "docs" ] || exit 1
         [ -f "README.md" ] || exit 1
-        [ -f "setup.py" ] || exit 1
+        [ -f "setup_project.py" ] || exit 1
         echo "Estructura del proyecto correcta"
+    
+        [ -d "src" ] || { echo "❌ Falta directorio src"; exit 1; }
+        [ -d "tests" ] || { echo "❌ Falta directorio tests"; exit 1; }
+        [ -f "setup.py" ] || { echo "❌ Falta setup.py"; exit 1; }
+        echo "✅ Estructura del proyecto correcta"
     
     - name: Create build artifacts
       run: |
+        python setup_project.py sdist bdist_wheel
         python setup.py sdist bdist_wheel
+        ls -l dist/
         mkdir -p artifacts
         cp -r dist/* artifacts/
-    
+
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: build-artifacts
+        name: build-artifacts-${{ matrix.python-version }}
         path: artifacts/
+    

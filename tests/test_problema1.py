@@ -1,38 +1,181 @@
-# Pruebas unitarias para el problema 1
+# tests/test_problema1.py
 import time
+import pytest
+from pathlib import Path
+import os
+import sys
+import re
+import string
+import random
+
+# Configuración de paths
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from src.problema1.fuerza_bruta import resolver_fuerza_bruta
 from src.problema1.programacion_dinamica import resolver_programacion_dinamica
-# from problema1.fuerza_bruta import resolver_fuerza_bruta
-# from problema1.voraz import resolver_voraz
+from src.problema1.voraz import resolver_voraz
+
+# ====================
+# Funciones auxiliares
+# ====================
+
+def normalizar_test(cadena):
+    """Función de normalización para tests (debe ser idéntica a la usada en los algoritmos)"""
+    s = cadena.lower()
+    replacements = {'á':'a', 'é':'e', 'í':'i', 'ó':'o', 'ú':'u', 'ü':'u', 'ñ':'n'}
+    for old, new in replacements.items():
+        s = s.replace(old, new)
+    return re.sub(r'[^a-z0-9]', '', s)
+
+def generar_cadena_aleatoria(longitud):
+    """Genera cadena aleatoria para pruebas de rendimiento"""
+    chars = string.ascii_letters + string.digits + string.punctuation + ' '
+    return ''.join(random.choice(chars) for _ in range(longitud))
 
 def medir_tiempo(funcion, entrada, repeticiones=5):
+    """Mide tiempo promedio de ejecución"""
     tiempos = []
     for _ in range(repeticiones):
-        inicio = time.time()
+        inicio = time.perf_counter()
         funcion(entrada)
-        fin = time.time()
+        fin = time.perf_counter()
         tiempos.append(fin - inicio)
     return sum(tiempos) / repeticiones
 
-def generar_cadena_alfanumerica(longitud):
-    return "a" * longitud
+def leer_datos_prueba(ruta_input, ruta_expected):
+    """Lee archivos de prueba"""
+    with open(ruta_input, 'r', encoding='utf-8') as f:
+        n = int(f.readline())
+        entradas = [line.strip() for line in f.readlines()[:n]]
+    
+    with open(ruta_expected, 'r', encoding='utf-8') as f:
+        esperados = [line.strip() for line in f.readlines()]
+    
+    return entradas, esperados
 
-def test_programacion_dinamica():
-    tamaños = [10, 100] #Se me crasheo con 1000, 10000, 50000
-    for tamaño in tamaños:
-        cadena = generar_cadena_alfanumerica(tamaño)
-        tiempo_promedio = medir_tiempo(resolver_programacion_dinamica, cadena)
-        print(f"Programación Dinámica ({tamaño} elementos): {tiempo_promedio:.4f} segundos")
+# ====================
+# Pruebas unitarias
+# ====================
 
-# def test_fuerza_bruta():
-#     tamaños = [10, 20, 30]  # Más pequeños para evitar tiempos excesivos
-#     for tamaño in tamaños:
-#         cadena = generar_cadena_alfanumerica(tamaño)
-#         tiempo_promedio = medir_tiempo(resolver_fuerza_bruta, cadena)
-#         print(f"Fuerza Bruta ({tamaño} elementos): {tiempo_promedio:.4f} segundos")
+@pytest.mark.parametrize("entrada,esperado", [
+    ("Anita lava la tina", "anitalavalatina"),
+    ("a", "a"),
+    ("", ""),
+    ("12321", "12321"),
+    ("A man, a plan, a canal: Panama", "amanaplanacanalpanama")
+])
+def test_resultados_exactos(entrada, esperado):
+    """Verifica que los algoritmos devuelvan resultados exactos para casos conocidos"""
+    resultado_pd = resolver_programacion_dinamica(entrada)
+    resultado_vz = resolver_voraz(entrada)
+    
+    # Verificación estricta para programación dinámica
+    assert resultado_pd == esperado, \
+        f"PD falló: Esperado '{esperado}' ({len(esperado)}), Obtenido '{resultado_pd}' ({len(resultado_pd)})"
+    
+    # Verificación laxa para voraz (puede ser subóptimo pero debe ser palíndromo)
+    assert resultado_vz == resultado_vz[::-1], "El resultado voraz no es palíndromo"
+    assert len(resultado_vz) <= len(esperado), \
+        f"Voraz devolvió cadena más larga que el óptimo: {len(resultado_vz)} > {len(esperado)}"
 
-# def test_voraz():
-#     tamaños = [10, 100, 1000]
-#     for tamaño in tamaños:
-#         cadena = generar_cadena_alfanumerica(tamaño)
-#         tiempo_promedio = medir_tiempo(resolver_voraz, cadena)
-#         print(f"Voraz ({tamaño} elementos): {tiempo_promedio:.4f} segundos")
+# ====================
+# Pruebas con archivos
+# ====================
+
+@pytest.mark.parametrize("tamaño", ['juguete', 'small'])
+def test_archivos(tamaño):
+    """Prueba los algoritmos con archivos de entrada/salida"""
+    base_path = Path(__file__).parent / "data" / tamaño
+    input_path = base_path / "input_p1.txt"
+    expected_path = base_path / "expected_p1.txt"
+    
+    entradas, esperados = leer_datos_prueba(input_path, expected_path)
+    
+    for entrada, esperado in zip(entradas, esperados):
+        # Programación dinámica debe coincidir exactamente
+        resultado_pd = resolver_programacion_dinamica(entrada)
+        assert resultado_pd == esperado, \
+            f"PD falló en {tamaño}: Esperado '{esperado}', Obtenido '{resultado_pd}'"
+        
+        # Voraz debe devolver un palíndromo válido (puede ser subóptimo)
+        resultado_vz = resolver_voraz(entrada)
+        assert resultado_vz == resultado_vz[::-1], "Voraz no devolvió palíndromo"
+        assert len(resultado_vz) <= len(esperado), \
+            f"Voraz devolvió cadena más larga que el óptimo en {tamaño}"
+
+# ====================
+# Pruebas de rendimiento
+# ====================
+
+@pytest.mark.parametrize("algoritmo,tamaño", [
+    (resolver_programacion_dinamica, 100),
+    (resolver_programacion_dinamica, 1000),
+    (resolver_programacion_dinamica, 5000),
+    (resolver_voraz, 100),
+    (resolver_voraz, 10000),
+    (resolver_voraz, 50000),
+    (resolver_fuerza_bruta, 10),
+    (resolver_fuerza_bruta, 12)
+], ids=[
+    "PD-100", "PD-1000", "PD-5000",
+    "VORAZ-100", "VORAZ-10000", "VORAZ-50000",
+    "FB-10", "FB-12"
+])
+def test_rendimiento(algoritmo, tamaño):
+    """Pruebas de rendimiento para diferentes tamaños de entrada"""
+    if algoritmo == resolver_fuerza_bruta and tamaño > 15:
+        pytest.skip("Fuerza bruta es muy lento para tamaños grandes")
+    
+    cadena = generar_cadena_aleatoria(tamaño)
+    tiempo = medir_tiempo(algoritmo, cadena)
+    
+    print(f"\n{algoritmo.__name__} ({tamaño} elementos): {tiempo:.4f} segundos")
+    
+    # Umbrales de tiempo (ajustar según hardware)
+    if algoritmo == resolver_fuerza_bruta:
+        assert tiempo < 2.0
+    elif algoritmo == resolver_programacion_dinamica:
+        assert tiempo < 5.0
+    else:
+        assert tiempo < 0.5
+
+# ====================
+# Pruebas de propiedades
+# ====================
+
+def test_propiedades_palindromo():
+    """Verifica propiedades fundamentales de los algoritmos"""
+    casos = [
+        "Race car",
+        "No 'x' in Nixon",
+        "Able was I ere I saw Elba",
+        "Madam, I'm Adam"
+    ]
+    
+    for caso in casos:
+        # Todos deben devolver palíndromos
+        resultado_pd = resolver_programacion_dinamica(caso)
+        resultado_vz = resolver_voraz(caso)
+        resultado_fb = resolver_fuerza_bruta(caso)
+        
+        assert resultado_pd == resultado_pd[::-1]
+        assert resultado_vz == resultado_vz[::-1]
+        assert resultado_fb == resultado_fb[::-1]
+        
+        # PD debe devolver la solución óptima
+        assert len(resultado_pd) >= len(resultado_vz)
+        assert len(resultado_pd) >= len(resultado_fb)
+
+# ====================
+# Pruebas de normalización
+# ====================
+
+@pytest.mark.parametrize("entrada,esperado", [
+    ("Dábale", "dabale"),
+    ("México", "mexico"),
+    ("Canción", "cancion"),
+    ("Año 2023", "ano2023"),
+    ("¡Hola!", "hola")
+])
+def test_normalizacion(entrada, esperado):
+    """Verifica que la normalización funcione correctamente"""
+    assert normalizar_test(entrada) == esperado

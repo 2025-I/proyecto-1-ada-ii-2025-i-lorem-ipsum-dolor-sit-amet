@@ -1,51 +1,42 @@
-# Implementación programación dinámica para problema de subsecuencias palindrómicas
 import re
 
 def normalizar(cadena):
-    # Elimina todos los caracteres no alfanuméricos y convierte a minúsculas.
-
-    return re.sub(r'[^a-z0-9]', '', cadena.lower())
+    """Normalización mejorada que maneja acentos"""
+    s = cadena.lower()
+    replacements = {'á':'a', 'é':'e', 'í':'i', 'ó':'o', 'ú':'u', 'ü':'u', 'ñ':'n'}
+    for old, new in replacements.items():
+        s = s.replace(old, new)
+    return re.sub(r'[^a-z0-9]', '', s)
 
 def resolver_programacion_dinamica(cadena):
-
-    # Dada una cadena de entrada, devuelve su subcadena palindrómica más larga,
-    # ignorando mayúsculas/minúsculas y caracteres no alfanuméricos.
-
     s = normalizar(cadena)
     n = len(s)
     if n == 0:
         return ''
-
-    # Inicializar la tabla dp
-    # dp[i][j] = True si la subcadena s[i..j] es un palíndromo
-    dp = [[False] * n for _ in range(n)]
     
-    # Todas las subcadenas de longitud 1 son palíndromos
+    # Tabla DP donde dp[i][j] indica si s[i..j] es palíndromo
+    dp = [[False] * n for _ in range(n)]
+    resultado = ""
+    
+    # Todos los substrings de longitud 1 son palíndromos
     for i in range(n):
         dp[i][i] = True
+        resultado = s[i]
     
-    inicio = 0  # Índice de inicio del palíndromo más largo
-    max_longitud = 1  # Longitud del palíndromo más largo
-    
-    # Verificar palíndromos de longitud 2
+    # Verificar substrings de longitud 2
     for i in range(n-1):
         if s[i] == s[i+1]:
             dp[i][i+1] = True
-            inicio = i
-            max_longitud = 2
+            if len(resultado) < 2:
+                resultado = s[i:i+2]
     
-    # Verificar palíndromos de longitud 3 o más
+    # Verificar substrings de longitud > 2
     for longitud in range(3, n+1):
         for i in range(n-longitud+1):
-            j = i + longitud - 1  # Índice final
-            
-            # Verificar si s[i..j] es un palíndromo
+            j = i + longitud - 1
             if s[i] == s[j] and dp[i+1][j-1]:
                 dp[i][j] = True
-                
-                if longitud > max_longitud:
-                    inicio = i
-                    max_longitud = longitud
+                if longitud > len(resultado):
+                    resultado = s[i:j+1]
     
-    # Retornar la subcadena palindrómica más larga
-    return s[inicio:inicio + max_longitud]
+    return resultado
