@@ -5,12 +5,12 @@ from file_chooser import seleccionar_archivo
 # Importaciones problema 1
 from problema1.fuerza_bruta import resolver_fuerza_bruta
 from problema1.programacion_dinamica import resolver_programacion_dinamica as resolver_p1_dinamica
-from problema1.voraz import resolver_voraz as palindroma_voraz
+from problema1.voraz import subsecuencia_palindromica_voraz as palindroma_voraz
 
 # Importaciones problema 2
 from problema2.programacion_dinamica import resolver_programacion_dinamica as resolver_p2_dinamica
-# from problema2.fuerza_bruta import resolver_fuerza_bruta as resolver_p2_fuerza_bruta
-# from problema2.voraz import resolver_voraz as resolver_p2_voraz
+from problema2.fuerza_bruta import resolver_fuerza_bruta as resolver_p2_fuerza_bruta
+from problema2.voraz import resolver_problema as resolver_p2_voraz
 
 def cargar_datos_p1(archivo):
     """Carga los datos del archivo para el problema 1 (subsecuencias palindrómicas)."""
