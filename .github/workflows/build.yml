@@ -1,4 +1,4 @@
-name: Build Project
+name: Build and Test Project
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -25,8 +25,9 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        pip install setuptools wheel  # Instalación explícita
         pip install -r requirements.txt
-    
+
     - name: Verify project structure
       run: |
         echo "Verificando estructura del proyecto..."
@@ -36,9 +37,20 @@ jobs:
         [ -f "setup_project.py" ] || exit 1
         echo "Estructura del proyecto correcta"
     
+        [ -d "src" ] || { echo "❌ Falta directorio src"; exit 1; }
+        [ -d "tests" ] || { echo "❌ Falta directorio tests"; exit 1; }
+        [ -f "setup.py" ] || { echo "❌ Falta setup.py"; exit 1; }
+        echo "✅ Estructura del proyecto correcta"
+    
+    - name: Run tests
+      run: |
+        pytest tests/ -v --cov=src --cov-report=xml
+
     - name: Create build artifacts
       run: |
         python setup_project.py sdist bdist_wheel
+        python setup.py sdist bdist_wheel
+        ls -l dist/
         mkdir -p artifacts
         cp -r dist/* artifacts/
     
